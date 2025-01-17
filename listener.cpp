@@ -36,7 +36,8 @@ void parseHeaders(const char* packet, struct iphdr **ip_header_ptr, struct tcphd
     *tcp_header_ptr = (struct tcphdr*)(packet  + (*ip_header_ptr)->ihl * 4);
 }
 
-int main() 
+
+int manualReceive() 
 {
     // Create a raw socket to capture TCP packets
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
@@ -46,16 +47,19 @@ int main()
     }
 
     char buffer[4096];
-    struct sockaddr_in source_addr;
-    socklen_t addr_len = sizeof(source_addr);
+
+    struct sockaddr_in source;
+    socklen_t addr_len = sizeof(source);
 
     std::cout << "Listening for packets on port 8101..." << std::endl;
 
-    while (true) {
-        // Receive packets
+    while (true) 
+    {
+        // receive packets
         ssize_t packet_size = recvfrom(sock, buffer, sizeof(buffer), 0, 
-                                       (struct sockaddr*)&source_addr, &addr_len);
-        if (packet_size < 0) {
+                                       (struct sockaddr*)&source, &addr_len);
+        if (packet_size < 0) 
+        {
             perror("Packet receive failed");
             continue;
         }
@@ -65,9 +69,16 @@ int main()
 
         parseHeaders(buffer, &ip_header, &tcp_header); 
         if (ntohs(tcp_header->source) == 8100 || ntohs(tcp_header->dest) == 8101)
+        {
             displayIpTcpHeaders(ip_header, tcp_header);
+        }
     }
 
     close(sock);
     return 0;
+}
+
+int main()
+{
+    manualReceive();
 }
