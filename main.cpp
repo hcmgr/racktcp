@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 
 #include "tcp.hpp"
+#include "utils.hpp"
 
 // Function to calculate checksum
 unsigned short calculateChecksum(unsigned short *ptr, int nbytes) {
@@ -81,5 +82,8 @@ int manualSend()
 
 int main() 
 {
-    manualSend();
+    // manualSend();
+    std::string interfaceName = "eth0";
+    int mtu = SystemUtils::getMTU(interfaceName);
+    std::cout << mtu << std::endl;
 }
