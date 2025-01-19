@@ -4,94 +4,92 @@
 #include <iostream>
 #include <random>
 
+#include "buffer.hpp"
+
 #include "test_utils.hpp"
 
-/**
- * General-purpose circular buffer.
- */
-class CircularBuffer
+////////////////////////////////////////////
+// CircularBuffer methods
+////////////////////////////////////////////
+
+CircularBuffer::CircularBuffer(uint32_t capacity)
+    : capacity(capacity), 
+      readPos(0), 
+      writePos(0)
 {
-public:
-    uint8_t *buffer;
-    uint32_t capacity;             
-    uint32_t readPos;               
-    uint32_t writePos;  
+    buffer = new uint8_t[capacity];
+}
 
-    CircularBuffer(uint32_t capacity)
-        : capacity(capacity), 
-          readPos(0), 
-          writePos(0)
+CircularBuffer::~CircularBuffer()
+{
+    delete[] buffer;
+}
+
+/**
+ * Write `N` bytes from `inBuffer` to the circular buffer.
+ * 
+ * Optionally write `offset` bytes into the buffer 
+ * (i.e. `offset` bytes ahead of the write pointer).
+ */
+bool CircularBuffer::write(void* inBuffer, int N, int offset)
+{
+    if (availableToWrite() < N)
+        return false;
+
+    uint8_t* inBufferBytes = static_cast<uint8_t*>(inBuffer);
+
+    for (int i = 0; i < N; i++)
     {
-        buffer = new uint8_t[capacity];
+        int ind = (readPos + i) % capacity;
+        buffer[ind] = inBufferBytes[i];
     }
 
-    ~CircularBuffer()
+    writePos = (writePos + N) % capacity;
+    return true;
+}
+
+/**
+ * Read `N` bytes from the circular buffer into `outBuffer`.
+ * 
+ * Optionally read from `offset` bytes into the buffer
+ * (i.e. `offset` bytes ahead of the read pointer).
+ */
+bool CircularBuffer::read(void* outBuffer, int N, int offset)
+{
+    if (availableToRead() < N)
+        return false;
+    
+    uint8_t* outBufferBytes = static_cast<uint8_t*>(outBuffer);
+
+    for (int i = 0; i < N; i++)
     {
-        delete[] buffer;
+        int ind = (readPos + i) % capacity;
+        outBufferBytes[i] = buffer[ind];
     }
 
-    /**
-     * Write `N` bytes from `inBuffer` to the circular buffer.
-     * 
-     * Optionally write `offset` bytes into the buffer 
-     * (i.e. `offset` bytes ahead of the write pointer).
-     */
-    bool write(void* inBuffer, int N, int offset)
-    {
-        if (availableToWrite() < N)
-            return false;
+    readPos = (readPos + N) % capacity;
+    return true;
+}
 
-        uint8_t* inBufferBytes = static_cast<uint8_t*>(inBuffer);
+/**
+ * Returns num. bytes able to be read after the read pointer.
+ */
+uint32_t CircularBuffer::availableToRead()
+{
+    return (writePos - readPos + capacity) % capacity;
+}
 
-        for (int i = 0; i < N; i++)
-        {
-            int ind = (readPos + i) % capacity;
-            buffer[ind] = inBufferBytes[i];
-        }
+/**
+ * Returns num. bytes able to be written after the write pointer.
+ */
+uint32_t CircularBuffer::availableToWrite()
+{
+    return capacity - availableToRead();
+}
 
-        writePos = (writePos + N) % capacity;
-        return true;
-    }
-
-    /**
-     * Read `N` bytes from the circular buffer into `outBuffer`.
-     * 
-     * Optionally read from `offset` bytes into the buffer
-     * (i.e. `offset` bytes ahead of the read pointer).
-     */
-    bool read(void* outBuffer, int N, int offset)
-    {
-        if (availableToRead() < N)
-            return false;
-        
-        uint8_t* outBufferBytes = static_cast<uint8_t*>(outBuffer);
-
-        for (int i = 0; i < N; i++)
-        {
-            int ind = (readPos + i) % capacity;
-            outBufferBytes[i] = buffer[ind];
-        }
-
-        readPos = (readPos + N) % capacity;
-        return true;
-    }
-
-    /**
-     * Returns num. bytes able to be read after the read pointer.
-     */
-    uint32_t availableToRead()
-    {
-        return (writePos - readPos + capacity) % capacity;
-    }
-
-    /**
-     * Returns num. bytes able to be written after the write pointer.
-     */
-    uint32_t availableToWrite()
-    {
-        return capacity - availableToRead();
-    }
-};
+////////////////////////////////////////////
+// CircularBuffer tests
+////////////////////////////////////////////
 
 namespace CircularBufferTests
 {
@@ -151,6 +149,9 @@ namespace CircularBufferTests
         ASSERT_THAT(cb.readPos == (N + M) % cb.capacity);
     }
 
+    /**
+     * TODO:
+     */
     void testReadWriteWithOffset()
     {
 

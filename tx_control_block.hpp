@@ -1,28 +1,32 @@
 #include <cstdint>
 
+#include "buffer.hpp"
+
 /**
- * State relating to the send stream.
+ * Represents the send stream
  */
-struct SendState
+struct SendStream
 {
     uint32_t UNA;
     uint32_t NXT;
     uint32_t WND;
 
     /* send buffer */
+    CircularBuffer sendBuffer;
 
-    /* retransmission queue*/
+    /* retransmission queue */
 };
 
 /**
- * State relating to the receive stream.
+ * Represents the receive stream
  */
-struct RecvState
+struct RecvStream
 {
     uint32_t NXT;
     uint32_t WND;
 
     /* recv buffer */
+    CircularBuffer recvBuffer;
 };
 
 
@@ -31,8 +35,8 @@ struct RecvState
  */
 struct Tcb
 {
-    SendState sendState;
-    RecvState recvState;
+    SendStream sendStream;
+    RecvStream recvStream;
 
     /* source port */
 
