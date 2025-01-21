@@ -14,6 +14,7 @@ void displayIpTcpHeaders(struct iphdr* ip_header, struct tcphdr* tcp_header)
     std::cout << "Destination IP: " << inet_ntoa(*(struct in_addr*)&ip_header->daddr) << std::endl;
     std::cout << "Source Port: " << ntohs(tcp_header->source) << std::endl;
     std::cout << "Destination Port: " << ntohs(tcp_header->dest) << std::endl;
+    std::cout << "Total length: " << ntohs(ip_header->tot_len) << std::endl;
     std::cout << "Sequence Number: " << ntohl(tcp_header->seq) << std::endl;
     std::cout << "Acknowledgment Number: " << ntohl(tcp_header->ack_seq) << std::endl;
     std::cout << "Flags: ";
@@ -48,8 +49,21 @@ int manualReceive()
 
     char buffer[4096];
 
-    struct sockaddr_in source;
-    socklen_t addr_len = sizeof(source);
+    std::string ip = "10.49.0.5";
+
+    struct sockaddr_in destAddr;
+    destAddr.sin_family = AF_INET;
+    destAddr.sin_addr.s_addr = inet_addr(ip.c_str());
+    socklen_t destAddrLen = sizeof(destAddr);
+
+    if (bind(sock, (struct sockaddr*)&destAddr, destAddrLen))
+    {
+        perror("Bind failed");
+        return 0;
+    }
+
+    struct sockaddr_in sourceAddr;
+    socklen_t sourceAddrLen;
 
     std::cout << "Listening for packets on port 8101..." << std::endl;
 
@@ -57,7 +71,8 @@ int manualReceive()
     {
         // receive packets
         ssize_t packet_size = recvfrom(sock, buffer, sizeof(buffer), 0, 
-                                       (struct sockaddr*)&source, &addr_len);
+                                       (struct sockaddr*)&sourceAddr, 
+                                        &sourceAddrLen);
         if (packet_size < 0) 
         {
             perror("Packet receive failed");
@@ -68,9 +83,10 @@ int manualReceive()
         struct tcphdr *tcp_header;
 
         parseHeaders(buffer, &ip_header, &tcp_header); 
+        displayIpTcpHeaders(ip_header, tcp_header);
         if (ntohs(tcp_header->source) == 8100 || ntohs(tcp_header->dest) == 8101)
         {
-            displayIpTcpHeaders(ip_header, tcp_header);
+            // displayIpTcpHeaders(ip_header, tcp_header);
         }
     }
 

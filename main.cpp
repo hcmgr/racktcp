@@ -82,8 +82,9 @@ int manualSend()
 
 int main() 
 {
-    // manualSend();
-    std::string interfaceName = "eth0";
-    int mtu = SystemUtils::getMTU(interfaceName);
-    std::cout << mtu << std::endl;
+    manualSend();
+
+    // std::string interfaceName = "eth0";
+    // int mtu = SystemUtils::getMTU(interfaceName);
+    // std::cout << mtu << std::endl;
 }

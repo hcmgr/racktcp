@@ -201,11 +201,6 @@ namespace CircularBufferTests
     }
 };
 
-int main()
-{
-    CircularBufferTests::testSimpleReadWrite();
-}
-
 /*
 ideas / todo
     - implement read/write at particular offset

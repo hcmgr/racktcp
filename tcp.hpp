@@ -1,6 +1,13 @@
 #pragma once
-#include <cstdint>
 
+#include <cstdint>
+#include <mutex>
+
+#include "buffer.hpp"
+
+/**
+ * TCP header
+ */
 struct TcpHeader
 {
     uint16_t sourcePort;
@@ -27,4 +34,80 @@ struct TcpHeader
 
     // default constructor
     TcpHeader() = default;
+};
+
+/**
+ * Represents the set of all TCP connection states
+ */
+enum ConnectionState
+{
+    CLOSED,
+    LISTEN,
+    SYN_SENT,
+    SYN_RECEIVED,
+    ESTABLISHED,
+    CLOSE_WAIT,
+    FIN_WAIT_1,
+    FIN_WAIT_2,
+    CLOSING,
+    LAST_ACK,
+    TIME_WAIT
+};
+
+/**
+ * Represents the send stream
+ */
+struct SendStream
+{
+    uint32_t UNA;       // una pointer (to-ack)
+    uint32_t NXT;       // next pointer (to-send)
+    uint32_t WND;       // send window
+    uint32_t ISS;       // initial send sequence number
+
+    /* send buffer */
+    CircularBuffer sendBuffer;
+
+    /* TOADD: retransmission queue */
+
+    /* Param constructor */
+    SendStream(uint32_t bufferCapacity);
+};
+
+/**
+ * Represents the receive stream
+ */
+struct RecvStream
+{
+    uint32_t NXT;       // next pointer (to-receive)
+    uint32_t WND;       // receive window
+    uint32_t IRS;       // initial receive sequence number
+
+    /* recv buffer */
+    CircularBuffer recvBuffer;
+
+    /* Param constructor */
+    RecvStream(uint32_t bufferCapacity);
+};
+
+/**
+ * Transmission Control Block (TCB)
+ */
+struct Tcb
+{
+    SendStream sendStream;
+    RecvStream recvStream;
+
+    in_addr_t sourceAddr;
+    in_addr_t destAddr;
+    uint16_t sourcePort;
+    uint16_t destPort;
+    
+    ConnectionState state;
+
+    std::mutex mutex;
+
+    Tcb(
+        uint32_t sendBufferCapacity,
+        uint32_t recvBufferCapacity
+    );
 };
