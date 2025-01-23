@@ -10,75 +10,76 @@
 #include <iomanip>
 
 #include "tcp.hpp"
+#include "ip.hpp"
 #include "buffer.hpp"
 #include "utils.hpp"
 
-////////////////////////////////////////////
-// iphdr methods
-////////////////////////////////////////////
-std::string ipToString(struct iphdr header) {
-    std::ostringstream oss;
+// ////////////////////////////////////////////
+// // iphdr methods
+// ////////////////////////////////////////////
+// std::string ipToString(struct iphdr header) {
+//     std::ostringstream oss;
 
-    oss << "IPv4 Header:" << "\n";
-    oss << "  Version: " << static_cast<int>(header.version) << "\n";
-    oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
-    oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
-    oss << "  Total Length: " << ntohs(header.tot_len) << " bytes\n";
-    oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.id) << std::dec << "\n";
-    oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.frag_off) << std::dec << "\n";
-    oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
-    oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
-    oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.check) << std::dec << "\n";
+//     oss << "IPv4 Header:" << "\n";
+//     oss << "  Version: " << static_cast<int>(header.version) << "\n";
+//     oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
+//     oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
+//     oss << "  Total Length: " << ntohs(header.tot_len) << " bytes\n";
+//     oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.id) << std::dec << "\n";
+//     oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.frag_off) << std::dec << "\n";
+//     oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
+//     oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
+//     oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.check) << std::dec << "\n";
 
-    // Convert source and destination addresses to human-readable format
-    struct in_addr src, dest;
-    src.s_addr = header.saddr;
-    dest.s_addr = header.daddr;
+//     // Convert source and destination addresses to human-readable format
+//     struct in_addr src, dest;
+//     src.s_addr = header.saddr;
+//     dest.s_addr = header.daddr;
 
-    oss << "  Source Address: " << inet_ntoa(src) << "\n";
-    oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
+//     oss << "  Source Address: " << inet_ntoa(src) << "\n";
+//     oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
 
-    return oss.str();
-}
+//     return oss.str();
+// }
 
-std::string ipToStringDone(struct iphdr header) {
-    std::ostringstream oss;
+// std::string ipToStringDone(struct iphdr header) {
+//     std::ostringstream oss;
 
-    oss << "####################################" << "\n";
-    oss << "IPv4 Header" << "\n\n";
-    oss << "  Version: " << static_cast<int>(header.version) << "\n";
-    oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
-    oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
-    oss << "  Total Length: " << header.tot_len << " bytes\n";
-    oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.id << std::dec << "\n";
-    oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.frag_off << std::dec << "\n";
-    oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
-    oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
-    oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.check << std::dec << "\n";
+//     oss << "####################################" << "\n";
+//     oss << "IPv4 Header" << "\n\n";
+//     oss << "  Version: " << static_cast<int>(header.version) << "\n";
+//     oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
+//     oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
+//     oss << "  Total Length: " << header.tot_len << " bytes\n";
+//     oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.id << std::dec << "\n";
+//     oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.frag_off << std::dec << "\n";
+//     oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
+//     oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
+//     oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.check << std::dec << "\n";
     
 
-    // Convert source and destination addresses to human-readable format
-    struct in_addr src, dest;
-    src.s_addr = htonl(header.saddr);
-    dest.s_addr = htonl(header.daddr);
+//     // Convert source and destination addresses to human-readable format
+//     struct in_addr src, dest;
+//     src.s_addr = htonl(header.saddr);
+//     dest.s_addr = htonl(header.daddr);
 
-    oss << "  Source Address: " << inet_ntoa(src) << "\n";
-    oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
+//     oss << "  Source Address: " << inet_ntoa(src) << "\n";
+//     oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
 
-    oss << "####################################" << "\n";
+//     oss << "####################################" << "\n";
 
-    return oss.str();
-}
+//     return oss.str();
+// }
 
-void ipNetworkToHost(struct iphdr *header)
-{
-    header->tot_len = ntohs(header->tot_len);
-    header->id = ntohs(header->id);
-    header->frag_off = ntohs(header->frag_off);
-    header->check = ntohs(header->check);
-    header->saddr = ntohl(header->saddr);
-    header->daddr = ntohl(header->daddr);
-}
+// void ipNetworkToHost(struct iphdr *header)
+// {
+//     header->tot_len = ntohs(header->tot_len);
+//     header->id = ntohs(header->id);
+//     header->frag_off = ntohs(header->frag_off);
+//     header->check = ntohs(header->check);
+//     header->saddr = ntohl(header->saddr);
+//     header->daddr = ntohl(header->daddr);
+// }
 
 ////////////////////////////////////////////
 // tcphdr methods
@@ -87,7 +88,6 @@ std::string TcpHeader::toString()
 {
     std::ostringstream oss;
 
-    oss << "####################################" << "\n";
     oss << "TCP Header" << "\n\n";
     oss << "  Source Port: " << sourcePort << "\n";
     oss << "  Destination Port: " << destPort << "\n";
@@ -109,7 +109,6 @@ std::string TcpHeader::toString()
     oss << "  Window Size: " << window << "\n";
     oss << "  Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << checksum << std::dec << "\n";
     oss << "  Urgent Pointer: " << urgPtr << "\n";
-    oss << "####################################" << "\n";
 
     return oss.str();
 }
@@ -148,7 +147,7 @@ Tcb::Tcb(
  */
 struct Packet
 {
-    struct iphdr ipHeader;
+    struct IpHeader ipHeader;
     struct TcpHeader tcpHeader;
     std::vector<uint8_t> payload;
 
@@ -175,8 +174,8 @@ struct Packet
         std::copy(it, it + sizeof(packet.tcpHeader), reinterpret_cast<uint8_t*>(&packet.tcpHeader));
         it += sizeof(packet.tcpHeader);
 
+        packet.ipHeader.networkToHostOrder();
         packet.tcpHeader.networkToHostOrder();
-        ipNetworkToHost(&packet.ipHeader);
 
         // payload
         // uint16_t payloadSize = packet.ipHeader.tot_len - packet.combinedHeaderSize();
@@ -190,6 +189,20 @@ struct Packet
         // std::copy(it, it + payloadSize, packet.payload.data());
 
         return packet;
+    }
+
+    std::string toString(bool showIpHeader = true, bool showPayload = false)
+    {
+        std::ostringstream oss;
+
+        oss << "####################################" << "\n";
+        if (showIpHeader)
+            oss << ipHeader.toString() << "\n";
+        oss << tcpHeader.toString();
+        if (showPayload)
+            oss << PrintUtils::printVector(payload);
+        oss << "####################################" << "\n";
+        return oss.str();
     }
 };
 
@@ -275,8 +288,9 @@ public:
             Packet packet = Packet::readPacket(packetBuffer);
             if (packet.tcpHeader.sourcePort == 8100 && packet.tcpHeader.destPort == 8101)
             {
-                std::cout << ipToStringDone(packet.ipHeader) << std::endl;
-                std::cout << packet.tcpHeader.toString() << std::endl;
+                // std::cout << packet.ipHeader.toString() << std::endl;
+                // std::cout << packet.tcpHeader.toString() << std::endl;
+                std::cout << packet.toString(false, false) << std::endl;
             }
 
             // if (ntohs(packet.tcpHeader.sourcePort) == 8100 || 

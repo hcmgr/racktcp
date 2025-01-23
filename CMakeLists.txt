@@ -9,6 +9,7 @@ file(GLOB THREAD_SOURCES
     "${SRC_DIR}/buffer.cpp"
     "${SRC_DIR}/test_utils.cpp"
     "${SRC_DIR}/utils.cpp"
+    "${SRC_DIR}/ip.cpp"
 )
 
 file (GLOB MAIN_SOURCES
