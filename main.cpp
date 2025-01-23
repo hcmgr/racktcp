@@ -59,7 +59,7 @@ int manualSend()
     tcpHeader->checksum = 0;             
     tcpHeader->urgPtr = 0;
 
-    std::string ip = "10.49.0.5";
+    std::string ip = "10.126.0.2";
 
     // Destination info
     struct sockaddr_in dest;
@@ -68,7 +68,7 @@ int manualSend()
     dest.sin_addr.s_addr = inet_addr(ip.c_str());
 
     // Send packet
-    if (sendto(sock, packet, sizeof(struct tcphdr), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+    if (sendto(sock, packet, sizeof(struct TcpHeader), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
         perror("sendto failed");
         close(sock);
         return 1;

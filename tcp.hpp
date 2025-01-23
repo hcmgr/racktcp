@@ -2,13 +2,14 @@
 
 #include <cstdint>
 #include <mutex>
+#include <netinet/ip.h>
 
 #include "buffer.hpp"
 
 /**
  * TCP header
  */
-struct TcpHeader
+struct __attribute__((packed)) TcpHeader
 {
     uint16_t sourcePort;
     uint16_t destPort;
@@ -34,6 +35,10 @@ struct TcpHeader
 
     // default constructor
     TcpHeader() = default;
+
+    std::string toString();
+
+    void networkToHostOrder();
 };
 
 /**

@@ -7,16 +7,18 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-void displayIpTcpHeaders(struct iphdr* ip_header, struct tcphdr* tcp_header)
+#include "tcp.hpp"
+
+void displayIpTcpHeaders(struct iphdr* ip_header, struct TcpHeader* tcp_header)
 {
     std::cout << "Received Packet:" << std::endl;
     std::cout << "Source IP: " << inet_ntoa(*(struct in_addr*)&ip_header->saddr) << std::endl;
     std::cout << "Destination IP: " << inet_ntoa(*(struct in_addr*)&ip_header->daddr) << std::endl;
-    std::cout << "Source Port: " << ntohs(tcp_header->source) << std::endl;
-    std::cout << "Destination Port: " << ntohs(tcp_header->dest) << std::endl;
+    std::cout << "Source Port: " << ntohs(tcp_header->sourcePort) << std::endl;
+    std::cout << "Destination Port: " << ntohs(tcp_header->destPort) << std::endl;
     std::cout << "Total length: " << ntohs(ip_header->tot_len) << std::endl;
-    std::cout << "Sequence Number: " << ntohl(tcp_header->seq) << std::endl;
-    std::cout << "Acknowledgment Number: " << ntohl(tcp_header->ack_seq) << std::endl;
+    std::cout << "Sequence Number: " << ntohl(tcp_header->seqNum) << std::endl;
+    std::cout << "Acknowledgment Number: " << ntohl(tcp_header->ackNum) << std::endl;
     std::cout << "Flags: ";
 
     if (tcp_header->syn) std::cout << "SYN ";
@@ -31,10 +33,10 @@ void displayIpTcpHeaders(struct iphdr* ip_header, struct tcphdr* tcp_header)
 }
 
 // Function to parse TCP headers
-void parseHeaders(const char* packet, struct iphdr **ip_header_ptr, struct tcphdr **tcp_header_ptr) 
+void parseHeaders(const char* packet, struct iphdr **ip_header_ptr, struct TcpHeader **tcp_header_ptr) 
 {
     *ip_header_ptr = (struct iphdr*)packet;
-    *tcp_header_ptr = (struct tcphdr*)(packet  + (*ip_header_ptr)->ihl * 4);
+    *tcp_header_ptr = (struct TcpHeader*)(packet  + (*ip_header_ptr)->ihl * 4);
 }
 
 
@@ -80,11 +82,11 @@ int manualReceive()
         }
 
         struct iphdr *ip_header;
-        struct tcphdr *tcp_header;
+        struct TcpHeader *tcp_header;
 
         parseHeaders(buffer, &ip_header, &tcp_header); 
         displayIpTcpHeaders(ip_header, tcp_header);
-        if (ntohs(tcp_header->source) == 8100 || ntohs(tcp_header->dest) == 8101)
+        if (ntohs(tcp_header->sourcePort) == 8100 || ntohs(tcp_header->destPort) == 8101)
         {
             // displayIpTcpHeaders(ip_header, tcp_header);
         }

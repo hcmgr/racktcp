@@ -8,6 +8,7 @@ file(GLOB THREAD_SOURCES
     "${SRC_DIR}/tcp.cpp"
     "${SRC_DIR}/buffer.cpp"
     "${SRC_DIR}/test_utils.cpp"
+    "${SRC_DIR}/utils.cpp"
 )
 
 file (GLOB MAIN_SOURCES
@@ -16,11 +17,6 @@ file (GLOB MAIN_SOURCES
 
 file (GLOB LISTENER_SOURCES 
     "${SRC_DIR}/listener.cpp"
-)
-
-file(GLOB BUFFER_SOURCES
-    "${SRC_DIR}/buffer.cpp"
-    "${SRC_DIR}/test_utils.cpp"
 )
 
 add_executable(thread ${THREAD_SOURCES})

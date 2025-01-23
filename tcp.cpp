@@ -4,9 +4,126 @@
 #include <sys/socket.h>
 #include <mutex>
 #include <memory>
+#include <string.h>
+#include <iterator>
+#include <sstream>
+#include <iomanip>
 
 #include "tcp.hpp"
 #include "buffer.hpp"
+#include "utils.hpp"
+
+////////////////////////////////////////////
+// iphdr methods
+////////////////////////////////////////////
+std::string ipToString(struct iphdr header) {
+    std::ostringstream oss;
+
+    oss << "IPv4 Header:" << "\n";
+    oss << "  Version: " << static_cast<int>(header.version) << "\n";
+    oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
+    oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
+    oss << "  Total Length: " << ntohs(header.tot_len) << " bytes\n";
+    oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.id) << std::dec << "\n";
+    oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.frag_off) << std::dec << "\n";
+    oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
+    oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
+    oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.check) << std::dec << "\n";
+
+    // Convert source and destination addresses to human-readable format
+    struct in_addr src, dest;
+    src.s_addr = header.saddr;
+    dest.s_addr = header.daddr;
+
+    oss << "  Source Address: " << inet_ntoa(src) << "\n";
+    oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
+
+    return oss.str();
+}
+
+std::string ipToStringDone(struct iphdr header) {
+    std::ostringstream oss;
+
+    oss << "####################################" << "\n";
+    oss << "IPv4 Header" << "\n\n";
+    oss << "  Version: " << static_cast<int>(header.version) << "\n";
+    oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
+    oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
+    oss << "  Total Length: " << header.tot_len << " bytes\n";
+    oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.id << std::dec << "\n";
+    oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.frag_off << std::dec << "\n";
+    oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
+    oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
+    oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.check << std::dec << "\n";
+    
+
+    // Convert source and destination addresses to human-readable format
+    struct in_addr src, dest;
+    src.s_addr = htonl(header.saddr);
+    dest.s_addr = htonl(header.daddr);
+
+    oss << "  Source Address: " << inet_ntoa(src) << "\n";
+    oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
+
+    oss << "####################################" << "\n";
+
+    return oss.str();
+}
+
+void ipNetworkToHost(struct iphdr *header)
+{
+    header->tot_len = ntohs(header->tot_len);
+    header->id = ntohs(header->id);
+    header->frag_off = ntohs(header->frag_off);
+    header->check = ntohs(header->check);
+    header->saddr = ntohl(header->saddr);
+    header->daddr = ntohl(header->daddr);
+}
+
+////////////////////////////////////////////
+// tcphdr methods
+////////////////////////////////////////////
+std::string TcpHeader::toString()
+{
+    std::ostringstream oss;
+
+    oss << "####################################" << "\n";
+    oss << "TCP Header" << "\n\n";
+    oss << "  Source Port: " << sourcePort << "\n";
+    oss << "  Destination Port: " << destPort << "\n";
+
+    oss << "  Sequence Number: " << seqNum << "\n";
+    oss << "  Acknowledgment Number: " << ackNum << "\n";
+
+    oss << "  Data Offset: " << static_cast<int>(doff) << " (words)" << "\n";
+
+    oss << "  Flags: [";
+    if (fin) oss << "FIN: " << fin << ", ";
+    if (syn) oss << "SYN: " << syn << ", ";
+    if (rst) oss << "RST: " << rst << ", ";
+    if (psh) oss << "PSH: " << psh << ", ";
+    if (ack) oss << "ACK: " << ack << ", ";
+    if (urg) oss << "URG: " << urg;
+    oss << "]" << "\n";
+
+    oss << "  Window Size: " << window << "\n";
+    oss << "  Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << checksum << std::dec << "\n";
+    oss << "  Urgent Pointer: " << urgPtr << "\n";
+    oss << "####################################" << "\n";
+
+    return oss.str();
+}
+
+void TcpHeader::networkToHostOrder()
+{
+    sourcePort = ntohs(sourcePort);
+    destPort = ntohs(destPort);
+    seqNum = ntohl(seqNum);
+    ackNum = ntohl(ackNum);
+    window = ntohs(window);
+    checksum = ntohs(checksum);
+    urgPtr = ntohs(urgPtr);
+}
 
 ////////////////////////////////////////////
 // Tcb methods
@@ -23,6 +140,58 @@ Tcb::Tcb(
 )
     : sendStream(sendBufferCapacity),
       recvStream(recvBufferCapacity) { }
+
+#define MTU 1500
+
+/**
+ * Represents a raw IP packet (i.e. ip header, tcp header and tcp payload).
+ */
+struct Packet
+{
+    struct iphdr ipHeader;
+    struct TcpHeader tcpHeader;
+    std::vector<uint8_t> payload;
+
+    uint32_t combinedHeaderSize()
+    {
+        return sizeof(ipHeader) + sizeof(tcpHeader);
+    }
+
+    static Packet readPacket(std::vector<uint8_t>& buffer)
+    {
+        Packet packet;
+
+        size_t requiredSize = sizeof(packet.ipHeader) + sizeof(packet.tcpHeader);
+        if (buffer.size() < requiredSize) 
+            throw std::runtime_error("Packet too small to contain TCP/IP headers");
+
+        auto it = buffer.begin();
+
+        // ip header
+        std::copy(it, it + sizeof(packet.ipHeader), reinterpret_cast<uint8_t*>(&packet.ipHeader));
+        it += sizeof(packet.ipHeader);
+
+        // tcp header
+        std::copy(it, it + sizeof(packet.tcpHeader), reinterpret_cast<uint8_t*>(&packet.tcpHeader));
+        it += sizeof(packet.tcpHeader);
+
+        packet.tcpHeader.networkToHostOrder();
+        ipNetworkToHost(&packet.ipHeader);
+
+        // payload
+        // uint16_t payloadSize = packet.ipHeader.tot_len - packet.combinedHeaderSize();
+        // uint16_t remainingBufferSize = std::distance(it, buffer.end());
+        // if (payloadSize != remainingBufferSize)
+        // {
+        //     std::cout << payloadSize << " " << remainingBufferSize << std::endl;
+        //     throw std::runtime_error("Payload sizes don't agree");
+        // }
+            
+        // std::copy(it, it + payloadSize, packet.payload.data());
+
+        return packet;
+    }
+};
 
 /**
  * Represents the TCP thread responsible for sending/receiving packets,
@@ -46,48 +215,95 @@ public:
         run();
     }
 
-    void run()
+    int initialiseRawSocket()
     {
         int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
         if (sock < 0)
         {
-            std::cout << "socket could not be opened" << std::endl;
-            return;
+            perror("Failed socket creation");
+            return -1;
         }
 
-        struct sockaddr_in destAddr;
-        destAddr.sin_family = AF_INET;
-        destAddr.sin_addr.s_addr = tcb->destAddr;
-        socklen_t destAddrLen = sizeof(destAddr);
+        // struct sockaddr_in destAddr;
+        // destAddr.sin_family = AF_INET;
+        // destAddr.sin_addr.s_addr = tcb->destAddr;
+        // socklen_t destAddrLen = sizeof(destAddr);
 
-        if (bind(sock, (struct sockaddr*)&destAddr, destAddrLen))
+        // if (bind(sock, (struct sockaddr*)&destAddr, destAddrLen))
+        // {
+        //     perror("Failed bind");
+        //     return -1;
+        // }
+
+        return sock;
+    }
+
+    ssize_t retreiveNextPacket(int sock, std::vector<uint8_t>& packetBuffer)
+    {
+        ssize_t packetSize = recvfrom(
+            sock, 
+            packetBuffer.data(), 
+            packetBuffer.size(),
+            0, 
+            NULL, 
+            NULL
+        );
+
+        if (packetSize < 0)
         {
-            perror("Failed bind");
-            return;
+            perror("Packet receive failed");
+            return -1;
         }
+
+        return packetSize;
+    }
+
+    void run()
+    {
+        int sock = initialiseRawSocket();
+        if (sock < 0) 
+            return;
+
+        std::vector<uint8_t> packetBuffer(MTU);
 
         while (1)
         {
-            switch(tcb->state)
+            ssize_t packetSize = retreiveNextPacket(sock, packetBuffer);
+            if (packetSize < 0) 
+                return;
+            
+            Packet packet = Packet::readPacket(packetBuffer);
+            if (packet.tcpHeader.sourcePort == 8100 && packet.tcpHeader.destPort == 8101)
             {
-                case CLOSED:
-
-                case LISTEN:
-
-                case SYN_SENT:
-
-                case SYN_RECEIVED:
-                    break;
+                std::cout << ipToStringDone(packet.ipHeader) << std::endl;
+                std::cout << packet.tcpHeader.toString() << std::endl;
             }
 
+            // if (ntohs(packet.tcpHeader.sourcePort) == 8100 || 
+            //     ntohs(packet.tcpHeader.destPort) == 8101)
+            // {
+            //     std::cout << packet.tcpHeader.toString() << std::endl;
+            // }
+
+            // switch(tcb->state)
+            // {
+            //     case CLOSED:
+            //     case LISTEN:
+            //     case SYN_SENT:
+            //     case SYN_RECEIVED:
+            //         break;
+            // }
         }
     }
 };
 
 int main()
 {
+    std::string ip = "10.126.0.2";
+
     auto tcb = std::make_shared<Tcb>(4096, 4096);
     tcb->state = ESTABLISHED;
+    tcb->destAddr = inet_addr(ip.c_str());
 
     SegmentThread st(tcb);
     st.startThread();
