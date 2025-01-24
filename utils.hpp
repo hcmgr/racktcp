@@ -27,7 +27,7 @@ namespace PrintUtils {
         oss << "[ ";
         for (size_t i = 0; i < vec.size(); ++i) 
         {
-            oss << static_cast<char>(vec[i]);
+            oss << static_cast<int>(vec[i]);
             if (i != vec.size() - 1) {
                 oss << ", ";
             }

@@ -14,83 +14,16 @@
 #include "buffer.hpp"
 #include "utils.hpp"
 
-// ////////////////////////////////////////////
-// // iphdr methods
-// ////////////////////////////////////////////
-// std::string ipToString(struct iphdr header) {
-//     std::ostringstream oss;
-
-//     oss << "IPv4 Header:" << "\n";
-//     oss << "  Version: " << static_cast<int>(header.version) << "\n";
-//     oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
-//     oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
-//     oss << "  Total Length: " << ntohs(header.tot_len) << " bytes\n";
-//     oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.id) << std::dec << "\n";
-//     oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.frag_off) << std::dec << "\n";
-//     oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
-//     oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
-//     oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << ntohs(header.check) << std::dec << "\n";
-
-//     // Convert source and destination addresses to human-readable format
-//     struct in_addr src, dest;
-//     src.s_addr = header.saddr;
-//     dest.s_addr = header.daddr;
-
-//     oss << "  Source Address: " << inet_ntoa(src) << "\n";
-//     oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
-
-//     return oss.str();
-// }
-
-// std::string ipToStringDone(struct iphdr header) {
-//     std::ostringstream oss;
-
-//     oss << "####################################" << "\n";
-//     oss << "IPv4 Header" << "\n\n";
-//     oss << "  Version: " << static_cast<int>(header.version) << "\n";
-//     oss << "  Header Length: " << static_cast<int>(header.ihl) * 4 << " bytes\n"; // IHL is in 32-bit words
-//     oss << "  Type of Service: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(header.tos) << std::dec << "\n";
-//     oss << "  Total Length: " << header.tot_len << " bytes\n";
-//     oss << "  Identification: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.id << std::dec << "\n";
-//     oss << "  Flags and Fragment Offset: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.frag_off << std::dec << "\n";
-//     oss << "  Time to Live: " << static_cast<int>(header.ttl) << "\n";
-//     oss << "  Protocol: " << static_cast<int>(header.protocol) << "\n";
-//     oss << "  Header Checksum: 0x" << std::hex << std::setw(4) << std::setfill('0') << header.check << std::dec << "\n";
-    
-
-//     // Convert source and destination addresses to human-readable format
-//     struct in_addr src, dest;
-//     src.s_addr = htonl(header.saddr);
-//     dest.s_addr = htonl(header.daddr);
-
-//     oss << "  Source Address: " << inet_ntoa(src) << "\n";
-//     oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
-
-//     oss << "####################################" << "\n";
-
-//     return oss.str();
-// }
-
-// void ipNetworkToHost(struct iphdr *header)
-// {
-//     header->tot_len = ntohs(header->tot_len);
-//     header->id = ntohs(header->id);
-//     header->frag_off = ntohs(header->frag_off);
-//     header->check = ntohs(header->check);
-//     header->saddr = ntohl(header->saddr);
-//     header->daddr = ntohl(header->daddr);
-// }
-
 ////////////////////////////////////////////
-// tcphdr methods
+// TcpHeader methods
 ////////////////////////////////////////////
 std::string TcpHeader::toString()
 {
     std::ostringstream oss;
 
     oss << "TCP Header" << "\n\n";
-    oss << "  Source Port: " << sourcePort << "\n";
-    oss << "  Destination Port: " << destPort << "\n";
+    oss << "  Source Port: " << ntohs(sourcePort) << "\n";
+    oss << "  Destination Port: " << ntohs(destPort) << "\n";
 
     oss << "  Sequence Number: " << seqNum << "\n";
     oss << "  Acknowledgment Number: " << ackNum << "\n";
@@ -98,12 +31,12 @@ std::string TcpHeader::toString()
     oss << "  Data Offset: " << static_cast<int>(doff) << " (words)" << "\n";
 
     oss << "  Flags: [";
-    if (fin) oss << "FIN: " << fin << ", ";
-    if (syn) oss << "SYN: " << syn << ", ";
-    if (rst) oss << "RST: " << rst << ", ";
-    if (psh) oss << "PSH: " << psh << ", ";
-    if (ack) oss << "ACK: " << ack << ", ";
-    if (urg) oss << "URG: " << urg;
+    if (FIN) oss << "FIN: " << FIN << ", ";
+    if (SYN) oss << "SYN: " << SYN << ", ";
+    if (RST) oss << "RST: " << RST << ", ";
+    if (PSH) oss << "PSH: " << PSH << ", ";
+    if (ACK) oss << "ACK: " << ACK << ", ";
+    if (URG) oss << "URG: " << URG;
     oss << "]" << "\n";
 
     oss << "  Window Size: " << window << "\n";
@@ -115,8 +48,8 @@ std::string TcpHeader::toString()
 
 void TcpHeader::networkToHostOrder()
 {
-    sourcePort = ntohs(sourcePort);
-    destPort = ntohs(destPort);
+    // sourcePort = ntohs(sourcePort);
+    // destPort = ntohs(destPort);
     seqNum = ntohl(seqNum);
     ackNum = ntohl(ackNum);
     window = ntohs(window);
@@ -156,7 +89,7 @@ struct Packet
         return sizeof(ipHeader) + sizeof(tcpHeader);
     }
 
-    static Packet readPacket(std::vector<uint8_t>& buffer, uint32_t packetSize)
+    static Packet deserialise(std::vector<uint8_t>& buffer, uint32_t packetSize)
     {
         Packet packet;
 
@@ -188,6 +121,31 @@ struct Packet
         return packet;
     }
 
+    std::vector<uint8_t> serialise(bool includeIpHeader)
+    {
+        ssize_t size = sizeof(tcpHeader) + payload.size();
+        if (includeIpHeader)
+            size += sizeof(ipHeader);
+
+        std::vector<uint8_t> buffer(size);
+        auto it = buffer.begin();
+
+        // ip header
+        if (includeIpHeader)
+        {
+            memcpy(&(*it), &ipHeader, sizeof(ipHeader));
+            it += sizeof(ipHeader);
+        }
+
+        // tcp header
+        memcpy(&(*it), &tcpHeader, sizeof(tcpHeader));
+        it += sizeof(tcpHeader);
+
+        // payload
+        memcpy(&(*it), payload.data(), payload.size());
+        return buffer;
+    }
+
     std::string toString(bool showIpHeader = true, bool showPayload = false)
     {
         std::ostringstream oss;
@@ -217,11 +175,13 @@ struct Packet
 class SegmentThread
 {
 public:
-    std::shared_ptr<Tcb> tcb;
-
     SegmentThread(std::shared_ptr<Tcb> tcb)
     {
         this->tcb = tcb;
+        this->sock = initialiseRawSocket();
+        if (this->sock < 0)
+            throw std::runtime_error("Failed socket creation");
+        return;
     }
 
     void startThread()
@@ -229,11 +189,22 @@ public:
         run();
     }
 
+private:
+    /**
+     * Transmission Control Block (TCB) of this connection.
+     */
+    std::shared_ptr<Tcb> tcb;
+
+    /**
+     * Raw IP socket of this connection.
+     */
+    int sock;
+
+    /**
+     * Opens and initialises this connection's raw IP socket.
+     */
     int initialiseRawSocket()
     {
-        /**
-         * Open a raw IP socket.
-         */
         int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
         if (sock < 0)
         {
@@ -246,7 +217,7 @@ public:
          */
         struct sockaddr_in destAddr;
         destAddr.sin_family = AF_INET;
-        destAddr.sin_addr.s_addr = tcb->destAddr;
+        destAddr.sin_addr.s_addr = inet_addr(tcb->sourceAddr.c_str());
         socklen_t destAddrLen = sizeof(destAddr);
 
         if (bind(sock, (struct sockaddr*)&destAddr, destAddrLen))
@@ -258,7 +229,10 @@ public:
         return sock;
     }
 
-    ssize_t retreiveNextPacket(int sock, std::vector<uint8_t>& packetBuffer)
+    /**
+     * Retreive next packet from the given raw IP socket.
+     */
+    ssize_t retreivePacket(std::vector<uint8_t>& packetBuffer)
     {
         ssize_t packetSize = recvfrom(
             sock, 
@@ -278,35 +252,212 @@ public:
         return packetSize;
     }
 
+    /**
+     * Send the given packet to the given raw IP socket.
+     */
+    ssize_t sendPacket(Packet &packet, bool includeIpHeader = false)
+    {
+        std::vector<uint8_t> packetBuffer = packet.serialise(includeIpHeader);
+
+        // destination info
+        struct sockaddr_in destAddr;
+        destAddr.sin_family = AF_INET;
+        destAddr.sin_port = htons(tcb->destPort);
+        destAddr.sin_addr.s_addr = inet_addr(tcb->destAddr.c_str());
+
+        ssize_t bytesSent = sendto(
+            sock,
+            packetBuffer.data(),
+            packetBuffer.size(),
+            0,
+            (struct sockaddr*)&destAddr,
+            sizeof(destAddr)
+        );
+
+        if (bytesSent < 0 || bytesSent != packetBuffer.size())
+        {
+            perror("sendto() failed");
+            return -1;
+        }
+        return bytesSent;
+    }
+
+    void closedHandler()
+    {
+        std::cout << "Sending opening SYN" << std::endl;
+
+        // send opening SYN
+        Packet packet;
+
+        TcpHeader h = {};
+        h.sourcePort = tcb->sourcePort;
+        h.destPort = tcb->destPort;
+        h.seqNum = 1;
+        h.ackNum = 1;
+        h.doff = 1; // TODO
+        h.SYN = 1;
+        h.window = 2048;
+        h.checksum = 420;
+
+        packet.tcpHeader = h;
+
+        std::string msg = "SYN'ing you";
+        packet.payload.resize(msg.size());
+        std::copy(
+            packet.payload.begin(), 
+            packet.payload.begin() + msg.size(), 
+            msg.data()
+        );
+
+        sendPacket(packet);
+
+        // transition to SYN-RECEIVED state
+        tcb->state = SYN_SENT;
+    }
+
+    void listenHandler(TcpHeader segmentHeader)
+    {
+        // received SYN, send SYN-ACK
+        if (segmentHeader.SYN)
+        {
+            std::cout << "Received SYN, sending SYN-ACK" << std::endl;
+
+            // send SYN-ACK
+            Packet packet;
+
+            TcpHeader h = {};
+            h.sourcePort = tcb->sourcePort;
+            h.destPort = tcb->destPort;
+            h.seqNum = 1;
+            h.ackNum = 1;
+            h.doff = 1; // TODO
+            h.SYN = 1;
+            h.ACK = 1;
+            h.window = 1024;
+            h.checksum = 69;
+
+            packet.tcpHeader = h;
+
+            std::string msg = "SYN-ACK'ing you";
+            packet.payload.resize(msg.size());
+            std::copy(
+                packet.payload.begin(), 
+                packet.payload.begin() + msg.size(), 
+                msg.data()
+            );
+
+            sendPacket(packet);
+
+            // transition to SYN-RECEIVED state
+            tcb->state = SYN_RECEIVED;
+        }
+    }
+
+    void synSentHandler(TcpHeader segmentHeader)
+    {
+        // received SYN-ACK of previously sent SYN
+        // TODO: check ackNum lines up
+        if (segmentHeader.SYN && segmentHeader.ACK && 1)
+        {
+            std::cout << "Received SYN-ACK, sending ACK, connection established" << std::endl;
+
+            // send ACK
+            Packet packet;
+
+            TcpHeader h = {};
+            h.sourcePort = tcb->sourcePort;
+            h.destPort = tcb->destPort;
+            h.seqNum = 1;
+            h.ackNum = 1;
+            h.doff = 1; // TODO
+            h.ACK = 1;
+            h.window = 4096;
+            h.checksum = 111;
+
+            packet.tcpHeader = h;
+
+            std::string msg = "ACK'ing you";
+            packet.payload.resize(msg.size());
+            std::copy(
+                packet.payload.begin(), 
+                packet.payload.begin() + msg.size(), 
+                msg.data()
+            );
+
+            sendPacket(packet);
+            tcb->state = ESTABLISHED;
+        }
+    }
+
+    void synReceivedHandler(TcpHeader segmentHeader)
+    {
+        // received ACK of previously sent SYN-ACK
+        // TODO: check ackNum lines up
+        if (segmentHeader.ACK && 1)
+        {
+            std::cout << "Received ACK, connection established" << std::endl;
+            tcb->state = ESTABLISHED;
+        }
+    }
+
+    bool packetValid(Packet &packet)
+    {
+        return (
+            packet.ipHeader.saddr == inet_addr(tcb->destAddr.c_str()) &&
+            packet.ipHeader.daddr == inet_addr(tcb->sourceAddr.c_str()) &&
+            packet.tcpHeader.sourcePort == tcb->destPort &&
+            packet.tcpHeader.destPort == tcb->sourcePort
+        );
+    }
+
     void run()
     {
-        int sock = initialiseRawSocket();
-        if (sock < 0) 
-            return;
-
         std::vector<uint8_t> packetBuffer(MTU);
+        
 
         while (1)
         {
-            ssize_t packetSize = retreiveNextPacket(sock, packetBuffer);
-            
-            if (packetSize < 0) 
-                return;
-            
-            Packet packet = Packet::readPacket(packetBuffer, packetSize);
-            if (packet.tcpHeader.sourcePort == 8100 && packet.tcpHeader.destPort == 8101)
-            {
-                std::cout << packet.toString(true, true) << std::endl;
-            }
+            Packet packet;
 
-            // switch(tcb->state)
-            // {
-            //     case CLOSED:
-            //     case LISTEN:
-            //     case SYN_SENT:
-            //     case SYN_RECEIVED:
-            //         break;
-            // }
+            bool waitForPacket = true;
+            if (tcb->state == CLOSED)
+                waitForPacket = false;
+
+            if (waitForPacket)
+            {
+                ssize_t packetSize = retreivePacket(packetBuffer);
+
+                if (packetSize < 0) 
+                    return;
+                
+                packet = Packet::deserialise(packetBuffer, packetSize);
+
+                if (!packetValid(packet))
+                    continue;
+                
+                std::cout << packet.toString() << std::endl;
+            }
+            
+            switch(tcb->state)
+            {
+                case CLOSED:
+                    closedHandler();
+                    break;
+                case LISTEN:
+                    listenHandler(packet.tcpHeader);
+                    break;
+                case SYN_SENT:
+                    synSentHandler(packet.tcpHeader);
+                    break;
+                case SYN_RECEIVED:
+                    synReceivedHandler(packet.tcpHeader);
+                    break;
+                case ESTABLISHED:
+                    break;
+                default:
+                    // shouldn't reach here
+                    throw std::runtime_error("Undefined state reached");
+            }
         }
     }
 };
@@ -316,8 +467,22 @@ int main()
     std::string ip = "10.126.0.2";
 
     auto tcb = std::make_shared<Tcb>(4096, 4096);
-    tcb->state = ESTABLISHED;
-    tcb->destAddr = inet_addr(ip.c_str());
+
+#ifdef THREAD1
+    tcb->state = CLOSED;
+    tcb->sourceAddr = ip;
+    tcb->sourcePort = htons(8100);
+    tcb->destAddr = ip;
+    tcb->destPort = htons(8101);
+    std::cout << "Thread1" << std::endl;
+#else // THREAD2
+    tcb->state = LISTEN;
+    tcb->sourceAddr = ip;
+    tcb->sourcePort = htons(8101);
+    tcb->destAddr = ip;
+    tcb->destPort = htons(8100);
+    std::cout << "Thread2" << std::endl;
+#endif
 
     SegmentThread st(tcb);
     st.startThread();

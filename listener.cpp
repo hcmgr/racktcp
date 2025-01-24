@@ -21,12 +21,12 @@ void displayIpTcpHeaders(struct iphdr* ip_header, struct TcpHeader* tcp_header)
     std::cout << "Acknowledgment Number: " << ntohl(tcp_header->ackNum) << std::endl;
     std::cout << "Flags: ";
 
-    if (tcp_header->syn) std::cout << "SYN ";
-    if (tcp_header->ack) std::cout << "ACK ";
-    if (tcp_header->fin) std::cout << "FIN ";
-    if (tcp_header->rst) std::cout << "RST ";
-    if (tcp_header->psh) std::cout << "PSH ";
-    if (tcp_header->urg) std::cout << "URG ";
+    if (tcp_header->SYN) std::cout << "SYN ";
+    if (tcp_header->ACK) std::cout << "ACK ";
+    if (tcp_header->FIN) std::cout << "FIN ";
+    if (tcp_header->RST) std::cout << "RST ";
+    if (tcp_header->PSH) std::cout << "PSH ";
+    if (tcp_header->URG) std::cout << "URG ";
 
     std::cout << std::endl;
     std::cout << "-----------------------------------" << std::endl;

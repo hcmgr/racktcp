@@ -72,7 +72,7 @@ int manualSend()
     dest.sin_addr.s_addr = inet_addr(ip.c_str());
 
     // Send packet
-    if (sendto(sock, packet, sizeof(struct tcphdr) + msg.size() + 1, 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) 
+    if (sendto(sock, packet, sizeof(struct tcphdr) + msg.size(), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) 
     {
         perror("sendto failed");
         close(sock);

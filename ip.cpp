@@ -3,8 +3,51 @@
 #include <iomanip>
 #include <sstream>
 #include <arpa/inet.h>
+#include <iostream>
 
 #include "ip.hpp"
+
+////////////////////////////////////////////
+// IpHeader methods
+////////////////////////////////////////////
+
+/**
+ * Calculate checksum of the IP header.
+ * 
+ * From RFC 791:
+ * 
+ * "The checksum field is the 16 bit one's complement of 
+ * the one's complement sum of all 16 bit words in the header.  
+ * For purposes of computing the checksum, the value of the 
+ * checksum field is zero."
+ */
+uint16_t IpHeader::calculateChecksum()
+{
+    // checksum calculation done on network ordered header
+
+    uint16_t *addr = (uint16_t*)this;
+    uint32_t sum = 0;
+    int count = ihl * 4;
+    while (count > 1) {
+        sum += * addr++;
+        count -= 2;
+    }
+    //if any bytes left, pad the bytes and add
+    if(count > 0) {
+        sum += ((*addr)&htons(0xFF00));
+    }
+
+    //Fold sum to 16 bits: add carrier to result
+    while (sum>>16) {
+        sum = (sum & 0xffff) + (sum >> 16);
+    }
+
+    // this->networkToHostOrder();
+
+    //one's complement
+    sum = ~sum;
+    return ((unsigned short)sum);
+}
 
 std::string IpHeader::toString() 
 {
@@ -39,6 +82,6 @@ void IpHeader::networkToHostOrder()
     id = ntohs(id);
     fragOff = ntohs(fragOff);
     checksum = ntohs(checksum);
-    saddr = ntohl(saddr);
-    daddr = ntohl(daddr);
+    // saddr = ntohl(saddr);
+    // daddr = ntohl(daddr);
 }

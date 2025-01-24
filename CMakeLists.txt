@@ -12,15 +12,7 @@ file(GLOB THREAD_SOURCES
     "${SRC_DIR}/ip.cpp"
 )
 
-file (GLOB MAIN_SOURCES
-    "${SRC_DIR}/main.cpp"
-    "${SRC_DIR}/utils.cpp"
-)
-
-file (GLOB LISTENER_SOURCES 
-    "${SRC_DIR}/listener.cpp"
-)
-
-add_executable(thread ${THREAD_SOURCES})
-add_executable(main ${MAIN_SOURCES})
-add_executable(listener ${LISTENER_SOURCES})
+add_executable(thread1 ${THREAD_SOURCES})
+target_compile_definitions(thread1 PRIVATE THREAD1)
+add_executable(thread2 ${THREAD_SOURCES})
+target_compile_definitions(thread2 PRIVATE THREAD2)

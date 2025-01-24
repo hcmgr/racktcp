@@ -21,20 +21,17 @@ struct __attribute__((packed)) TcpHeader
 	uint16_t doff:4;
 
     // flags
-	uint16_t fin:1;
-	uint16_t syn:1;
-	uint16_t rst:1;
-	uint16_t psh:1;
-	uint16_t ack:1;
-	uint16_t urg:1;
-	uint16_t res2:2;
+	uint16_t FIN:1;
+	uint16_t SYN:1;
+	uint16_t RST:1;
+	uint16_t PSH:1;
+	uint16_t ACK:1;
+	uint16_t URG:1;
+	uint16_t RES2:2;
 
     uint16_t window;
     uint16_t checksum;
     uint16_t urgPtr;
-
-    // default constructor
-    TcpHeader() = default;
 
     std::string toString();
 
@@ -102,8 +99,8 @@ struct Tcb
     SendStream sendStream;
     RecvStream recvStream;
 
-    in_addr_t sourceAddr;
-    in_addr_t destAddr;
+    std::string sourceAddr;
+    std::string destAddr;
     uint16_t sourcePort;
     uint16_t destPort;
     
