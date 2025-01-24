@@ -14,6 +14,7 @@ file(GLOB THREAD_SOURCES
 
 file (GLOB MAIN_SOURCES
     "${SRC_DIR}/main.cpp"
+    "${SRC_DIR}/utils.cpp"
 )
 
 file (GLOB LISTENER_SOURCES 

@@ -6,8 +6,8 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <vector>
 
-#include "tcp.hpp"
 #include "utils.hpp"
 
 // Function to calculate checksum
@@ -38,12 +38,12 @@ int manualSend()
     memset(packet, 0, sizeof(packet));
 
     // TCP header
-    TcpHeader *tcpHeader = (TcpHeader *)packet;
+    struct tcphdr *tcpHeader = (struct tcphdr*)packet;
 
-    tcpHeader->sourcePort = htons(8100);
-    tcpHeader->destPort = htons(8101);  
-    tcpHeader->seqNum = htonl(0);     
-    tcpHeader->ackNum = htonl(0); 
+    tcpHeader->source = htons(8100);
+    tcpHeader->dest = htons(8101);  
+    tcpHeader->seq = htonl(0);     
+    tcpHeader->ack_seq = htonl(0); 
 
     tcpHeader->doff = 5;            
 
@@ -56,8 +56,12 @@ int manualSend()
     tcpHeader->urg = 1;
 
     tcpHeader->window = htons(5840);  
-    tcpHeader->checksum = 0;             
-    tcpHeader->urgPtr = 0;
+    tcpHeader->check = 0;             
+    tcpHeader->urg_ptr = 0;
+
+    // payload
+    std::string msg = "Hello there!";
+    memcpy(packet + sizeof(struct tcphdr), msg.c_str(), msg.size());
 
     std::string ip = "10.126.0.2";
 
@@ -68,7 +72,8 @@ int manualSend()
     dest.sin_addr.s_addr = inet_addr(ip.c_str());
 
     // Send packet
-    if (sendto(sock, packet, sizeof(struct TcpHeader), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+    if (sendto(sock, packet, sizeof(struct tcphdr) + msg.size() + 1, 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) 
+    {
         perror("sendto failed");
         close(sock);
         return 1;

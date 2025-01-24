@@ -177,7 +177,7 @@ struct Packet
         packet.ipHeader.networkToHostOrder();
         packet.tcpHeader.networkToHostOrder();
 
-        // payload
+        // // payload
         if (packet.ipHeader.totLen != packetSize)
             throw std::runtime_error("Packet sizes don't agree");
 
@@ -197,7 +197,11 @@ struct Packet
             oss << ipHeader.toString() << "\n";
         oss << tcpHeader.toString();
         if (showPayload)
-            oss << PrintUtils::printVector(payload);
+        {
+            std::string payloadStr(reinterpret_cast<char*>(payload.data()));
+            oss << "\nPayload" << "\n\n";
+            oss << "  " << payloadStr << "\n";
+        }
         oss << "####################################" << "\n";
         return oss.str();
     }
@@ -227,6 +231,9 @@ public:
 
     int initialiseRawSocket()
     {
+        /**
+         * Open a raw IP socket.
+         */
         int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
         if (sock < 0)
         {
@@ -234,16 +241,19 @@ public:
             return -1;
         }
 
-        // struct sockaddr_in destAddr;
-        // destAddr.sin_family = AF_INET;
-        // destAddr.sin_addr.s_addr = tcb->destAddr;
-        // socklen_t destAddrLen = sizeof(destAddr);
+        /**
+         * Bind to destination addr
+         */
+        struct sockaddr_in destAddr;
+        destAddr.sin_family = AF_INET;
+        destAddr.sin_addr.s_addr = tcb->destAddr;
+        socklen_t destAddrLen = sizeof(destAddr);
 
-        // if (bind(sock, (struct sockaddr*)&destAddr, destAddrLen))
-        // {
-        //     perror("Failed bind");
-        //     return -1;
-        // }
+        if (bind(sock, (struct sockaddr*)&destAddr, destAddrLen))
+        {
+            perror("Failed bind");
+            return -1;
+        }
 
         return sock;
     }
@@ -259,7 +269,7 @@ public:
             NULL
         );
 
-        if (packetSize < 0 || packetSize > packetBuffer.capacity())
+        if (packetSize < 0 || packetSize > packetBuffer.size())
         {
             perror("Packet receive failed");
             return -1;
@@ -279,20 +289,15 @@ public:
         while (1)
         {
             ssize_t packetSize = retreiveNextPacket(sock, packetBuffer);
+            
             if (packetSize < 0) 
                 return;
             
             Packet packet = Packet::readPacket(packetBuffer, packetSize);
             if (packet.tcpHeader.sourcePort == 8100 && packet.tcpHeader.destPort == 8101)
             {
-                std::cout << packet.toString() << std::endl;
+                std::cout << packet.toString(true, true) << std::endl;
             }
-
-            // if (ntohs(packet.tcpHeader.sourcePort) == 8100 || 
-            //     ntohs(packet.tcpHeader.destPort) == 8101)
-            // {
-            //     std::cout << packet.tcpHeader.toString() << std::endl;
-            // }
 
             // switch(tcb->state)
             // {
@@ -316,7 +321,4 @@ int main()
 
     SegmentThread st(tcb);
     st.startThread();
-
-    // int mtu = SystemUtils::getMTU("eth0");
-    // std::cout << mtu << std::endl;
 }
