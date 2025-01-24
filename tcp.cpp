@@ -140,7 +140,7 @@ Tcb::Tcb(
     : sendStream(sendBufferCapacity),
       recvStream(recvBufferCapacity) { }
 
-#define MTU 1500
+#define MTU (1 << 15)
 
 /**
  * Represents a raw IP packet (i.e. ip header, tcp header and tcp payload).
@@ -156,7 +156,7 @@ struct Packet
         return sizeof(ipHeader) + sizeof(tcpHeader);
     }
 
-    static Packet readPacket(std::vector<uint8_t>& buffer)
+    static Packet readPacket(std::vector<uint8_t>& buffer, uint32_t packetSize)
     {
         Packet packet;
 
@@ -178,15 +178,12 @@ struct Packet
         packet.tcpHeader.networkToHostOrder();
 
         // payload
-        // uint16_t payloadSize = packet.ipHeader.tot_len - packet.combinedHeaderSize();
-        // uint16_t remainingBufferSize = std::distance(it, buffer.end());
-        // if (payloadSize != remainingBufferSize)
-        // {
-        //     std::cout << payloadSize << " " << remainingBufferSize << std::endl;
-        //     throw std::runtime_error("Payload sizes don't agree");
-        // }
-            
-        // std::copy(it, it + payloadSize, packet.payload.data());
+        if (packet.ipHeader.totLen != packetSize)
+            throw std::runtime_error("Packet sizes don't agree");
+
+        uint16_t payloadSize = packet.ipHeader.totLen - packet.combinedHeaderSize();
+        packet.payload.resize(payloadSize);
+        std::copy(it, it + payloadSize, packet.payload.data());
 
         return packet;
     }
@@ -262,7 +259,7 @@ public:
             NULL
         );
 
-        if (packetSize < 0)
+        if (packetSize < 0 || packetSize > packetBuffer.capacity())
         {
             perror("Packet receive failed");
             return -1;
@@ -285,12 +282,10 @@ public:
             if (packetSize < 0) 
                 return;
             
-            Packet packet = Packet::readPacket(packetBuffer);
+            Packet packet = Packet::readPacket(packetBuffer, packetSize);
             if (packet.tcpHeader.sourcePort == 8100 && packet.tcpHeader.destPort == 8101)
             {
-                // std::cout << packet.ipHeader.toString() << std::endl;
-                // std::cout << packet.tcpHeader.toString() << std::endl;
-                std::cout << packet.toString(false, false) << std::endl;
+                std::cout << packet.toString() << std::endl;
             }
 
             // if (ntohs(packet.tcpHeader.sourcePort) == 8100 || 
@@ -321,4 +316,7 @@ int main()
 
     SegmentThread st(tcb);
     st.startThread();
+
+    // int mtu = SystemUtils::getMTU("eth0");
+    // std::cout << mtu << std::endl;
 }
