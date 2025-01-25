@@ -3,6 +3,7 @@
 #include <string.h>
 #include <iostream>
 #include <random>
+#include <cassert>
 
 #include "buffer.hpp"
 
@@ -11,18 +12,12 @@
 ////////////////////////////////////////////
 // CircularBuffer methods
 ////////////////////////////////////////////
-
-CircularBuffer::CircularBuffer(uint32_t capacity)
-    : capacity(capacity), 
-      readPos(0), 
-      writePos(0)
+void CircularBuffer::initialise(uint32_t bufferCapacity)
 {
-    buffer = new uint8_t[capacity];
-}
-
-CircularBuffer::~CircularBuffer()
-{
-    delete[] buffer;
+    capacity = bufferCapacity;
+    buffer.resize(capacity);
+    readPos = 0;
+    writePos = 0;
 }
 
 /**
@@ -31,17 +26,16 @@ CircularBuffer::~CircularBuffer()
  * Optionally write `offset` bytes into the buffer 
  * (i.e. `offset` bytes ahead of the write pointer).
  */
-bool CircularBuffer::write(void* inBuffer, int N, int offset)
+bool CircularBuffer::write(std::vector<uint8_t> &inBuffer, int N, int offset)
 {
+    assert(N <= inBuffer.size());
     if (availableToWrite() < N)
         return false;
-
-    uint8_t* inBufferBytes = static_cast<uint8_t*>(inBuffer);
 
     for (int i = 0; i < N; i++)
     {
         int ind = (readPos + i) % capacity;
-        buffer[ind] = inBufferBytes[i];
+        buffer[ind] = inBuffer[i];
     }
 
     writePos = (writePos + N) % capacity;
@@ -54,17 +48,16 @@ bool CircularBuffer::write(void* inBuffer, int N, int offset)
  * Optionally read from `offset` bytes into the buffer
  * (i.e. `offset` bytes ahead of the read pointer).
  */
-bool CircularBuffer::read(void* outBuffer, int N, int offset)
+bool CircularBuffer::read(std::vector<uint8_t> &outBuffer, int N, int offset)
 {
+    assert(N <= outBuffer.size());
     if (availableToRead() < N)
         return false;
     
-    uint8_t* outBufferBytes = static_cast<uint8_t*>(outBuffer);
-
     for (int i = 0; i < N; i++)
     {
         int ind = (readPos + i) % capacity;
-        outBufferBytes[i] = buffer[ind];
+        outBuffer[i] = buffer[ind];
     }
 
     readPos = (readPos + N) % capacity;
@@ -102,6 +95,7 @@ namespace CircularBufferTests
         std::mt19937 gen(rd());                         // init. pseudo random number gen. with seed
         std::uniform_int_distribution<> dis(65, 90);    // init. distribution over uppercase ASCIIs
 
+        buffer.resize(N);
         for (int i = 0; i < N; i++)
             buffer[i] = static_cast<uint8_t>(dis(gen)); // sample distribution
         return;
@@ -113,7 +107,8 @@ namespace CircularBufferTests
          * Initialise
          */
         uint32_t capacity = 4000;
-        CircularBuffer cb(capacity);
+        CircularBuffer cb;
+        cb.initialise(capacity);
 
         ASSERT_THAT(cb.availableToRead() == 0);
         ASSERT_THAT(cb.availableToWrite() == cb.capacity);
@@ -122,28 +117,27 @@ namespace CircularBufferTests
          * Write N bytes, try and read back out
          */
         int N = 3000;
-        std::vector<uint8_t> inBuffer(N);
+        std::vector<uint8_t> inBuffer;
         populateRandomBuffer(inBuffer, N);
 
-        cb.write(inBuffer.data(), N, 0);
+        cb.write(inBuffer, N, 0);
         ASSERT_THAT(cb.availableToRead() == N);
         ASSERT_THAT(cb.availableToWrite() == capacity - N);
 
         std::vector<uint8_t> outBuffer(N);
-        cb.read(outBuffer.data(), N, 0);
+        cb.read(outBuffer, N, 0);
         ASSERT_THAT(inBuffer == outBuffer);
 
         /**
          * Write M more bytes such that pointers wrap around
          */
         int M = 2000;
-        inBuffer.resize(M);
         populateRandomBuffer(inBuffer, M);
 
-        cb.write(inBuffer.data(), M, 0);
+        cb.write(inBuffer, M, 0);
 
         outBuffer.resize(M);
-        cb.read(outBuffer.data(), M, 0);
+        cb.read(outBuffer, M, 0);
         ASSERT_THAT(inBuffer == outBuffer);
         ASSERT_THAT(cb.writePos == (N + M) % cb.capacity);
         ASSERT_THAT(cb.readPos == (N + M) % cb.capacity);
@@ -160,16 +154,17 @@ namespace CircularBufferTests
     void testCapacityReached()
     {
         int capacity = 2000;
-        CircularBuffer cb(capacity);
+        CircularBuffer cb;
+        cb.initialise(capacity);
 
         int N = 1500;
         std::vector<uint8_t> inBuffer;
         populateRandomBuffer(inBuffer, N);
-        cb.write(inBuffer.data(), N, 0);
+        cb.write(inBuffer, N, 0);
 
         int M = 500;
         std::vector<uint8_t> outBuffer(M);
-        cb.read(outBuffer.data(), M, 0);
+        cb.read(outBuffer, M, 0);
 
         ASSERT_THAT(cb.availableToWrite() == 1000);
 
@@ -177,7 +172,7 @@ namespace CircularBufferTests
          * Write X > availableToWrite() bytes
          */
         int X = 1100;
-        bool res = cb.write(inBuffer.data(), X, 0);
+        bool res = cb.write(inBuffer, X, 0);
         ASSERT_THAT(!res);
         ASSERT_THAT(cb.writePos == 1500 && cb.readPos == 500);
     }

@@ -4,6 +4,9 @@
 #include <map>
 #include <unordered_set>
 #include <sstream>
+#include <cstdint>
+#include <iostream>
+#include <vector>
 
 #define DEFAULT_MSS 536
 
@@ -14,6 +17,14 @@ namespace SystemUtils
      */
     int getMTU(std::string interface_name);
 };
+
+namespace Time
+{
+    /**
+     * Retreive 32-bit unix epoch time.
+     */
+    uint32_t getUnixEpochTime();
+}
 
 namespace PrintUtils {
 

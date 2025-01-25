@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <string>
 
+#include "utils.hpp"
+
 namespace SystemUtils
 {
     /**
@@ -31,5 +33,16 @@ namespace SystemUtils
 
         close(sock);
         return ifr.ifr_mtu;
+    }
+}
+
+namespace Time
+{
+    /**
+     * Retreive 32-bit unix epoch time.
+     */
+    uint32_t getUnixEpochTime()
+    {
+        return static_cast<uint32_t>(time(nullptr));
     }
 }

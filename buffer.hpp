@@ -9,14 +9,13 @@
 class CircularBuffer
 {
 public:
-    uint8_t *buffer;
-    uint32_t capacity;             
+    std::vector<uint8_t> buffer;
+    uint32_t capacity; 
+
     uint32_t readPos;               
     uint32_t writePos;  
 
-    CircularBuffer(uint32_t capacity);
-
-    ~CircularBuffer();
+    void initialise(uint32_t bufferCapacity);
 
     /**
      * Write `N` bytes from `inBuffer` to the circular buffer.
@@ -24,7 +23,7 @@ public:
      * Optionally write `offset` bytes into the buffer 
      * (i.e. `offset` bytes ahead of the write pointer).
      */
-    bool write(void* inBuffer, int N, int offset);
+    bool write(std::vector<uint8_t> &inBuffer, int N, int offset);
 
     /**
      * Read `N` bytes from the circular buffer into `outBuffer`.
@@ -32,7 +31,7 @@ public:
      * Optionally read from `offset` bytes into the buffer
      * (i.e. `offset` bytes ahead of the read pointer).
      */
-    bool read(void* outBuffer, int N, int offset);
+    bool read(std::vector<uint8_t> &outBuffer, int N, int offset);
 
     /**
      * Returns num. bytes able to be read after the read pointer.

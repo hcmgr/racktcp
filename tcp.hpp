@@ -5,6 +5,7 @@
 #include <netinet/ip.h>
 
 #include "buffer.hpp"
+#include "config.hpp"
 
 /**
  * TCP header
@@ -57,10 +58,11 @@ enum ConnectionState
 };
 
 /**
- * Represents the send stream
+ * Represents the send stream of the TCP connection.
  */
 struct SendStream
 {
+    /* stream parameters */
     uint32_t UNA;       // una pointer (to-ack)
     uint32_t NXT;       // next pointer (to-send)
     uint32_t WND;       // send window
@@ -73,22 +75,35 @@ struct SendStream
 
     /* Param constructor */
     SendStream(uint32_t bufferCapacity);
+
+    /**
+     * Generate a new initital sequence number (ISS).
+     */
+    uint32_t generateISS();
+
+    std::string toString();
 };
 
 /**
- * Represents the receive stream
+ * Represents the receive stream of the TCP connection.
  */
 struct RecvStream
 {
+    /* stream paramters */
     uint32_t NXT;       // next pointer (to-receive)
     uint32_t WND;       // receive window
-    uint32_t IRS;       // initial receive sequence number
+    uint32_t IRS;       // initial receive sequence number (connection peer's ISS)
 
     /* recv buffer */
     CircularBuffer recvBuffer;
+    uint32_t bufferCapacity;
 
-    /* Param constructor */
+    /**
+     * Param constructor
+     */
     RecvStream(uint32_t bufferCapacity);
+
+    std::string toString();
 };
 
 /**
@@ -108,8 +123,8 @@ struct Tcb
 
     std::mutex mutex;
 
-    Tcb(
-        uint32_t sendBufferCapacity,
-        uint32_t recvBufferCapacity
-    );
+    /* Default constructor */
+    Tcb()
+    : sendStream(SEND_BUFFER_CAPACITY),
+      recvStream(RECV_BUFFER_CAPACITY) {}
 };
