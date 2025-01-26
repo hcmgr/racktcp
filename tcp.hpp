@@ -37,6 +37,7 @@ struct __attribute__((packed)) TcpHeader
     std::string toString();
 
     void networkToHostOrder();
+    void hostToNetworkOrder();
 };
 
 /**
@@ -96,7 +97,6 @@ struct RecvStream
 
     /* recv buffer */
     CircularBuffer recvBuffer;
-    uint32_t bufferCapacity;
 
     /**
      * Param constructor

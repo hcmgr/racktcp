@@ -67,8 +67,8 @@ std::string IpHeader::toString()
 
     // Convert source and destination addresses to human-readable format
     struct in_addr src, dest;
-    src.s_addr = htonl(saddr);
-    dest.s_addr = htonl(daddr);
+    src.s_addr = saddr;
+    dest.s_addr = daddr;
 
     oss << "  Source Address: " << inet_ntoa(src) << "\n";
     oss << "  Destination Address: " << inet_ntoa(dest) << "\n";
@@ -82,6 +82,4 @@ void IpHeader::networkToHostOrder()
     id = ntohs(id);
     fragOff = ntohs(fragOff);
     checksum = ntohs(checksum);
-    // saddr = ntohl(saddr);
-    // daddr = ntohl(daddr);
 }

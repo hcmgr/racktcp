@@ -16,6 +16,7 @@
 #include "utils.hpp"
 #include "crypto.hpp"
 #include "config.hpp"
+#include "packet.hpp"
 
 ////////////////////////////////////////////
 // TcpHeader methods
@@ -25,8 +26,8 @@ std::string TcpHeader::toString()
     std::ostringstream oss;
 
     oss << "TCP Header" << "\n\n";
-    oss << "  Source Port: " << ntohs(sourcePort) << "\n";
-    oss << "  Destination Port: " << ntohs(destPort) << "\n";
+    oss << "  Source Port: " << sourcePort << "\n";
+    oss << "  Destination Port: " << destPort << "\n";
 
     oss << "  Sequence Number: " << seqNum << "\n";
     oss << "  Acknowledgment Number: " << ackNum << "\n";
@@ -51,13 +52,24 @@ std::string TcpHeader::toString()
 
 void TcpHeader::networkToHostOrder()
 {
-    // sourcePort = ntohs(sourcePort);
-    // destPort = ntohs(destPort);
+    sourcePort = ntohs(sourcePort);
+    destPort = ntohs(destPort);
     seqNum = ntohl(seqNum);
     ackNum = ntohl(ackNum);
     window = ntohs(window);
     checksum = ntohs(checksum);
     urgPtr = ntohs(urgPtr);
+}
+
+void TcpHeader::hostToNetworkOrder()
+{
+    sourcePort = htons(sourcePort);
+    destPort = htons(destPort);
+    seqNum = htonl(seqNum);
+    ackNum = htonl(ackNum);
+    window = htons(window);
+    checksum = htons(checksum);
+    urgPtr = htons(urgPtr);
 }
 
 ////////////////////////////////////////////
@@ -77,8 +89,6 @@ SendStream::SendStream(uint32_t bufferCapacity)
     // set r/w pointers
     sendBuffer.readPos = NXT;
     sendBuffer.writePos = NXT;
-
-    std::cout << this->toString() << std::endl;
 }
 
 /**
@@ -130,17 +140,15 @@ std::string SendStream::toString()
 RecvStream::RecvStream(uint32_t bufferCapacity)
 {
     // initialise receive buffer
-    this->bufferCapacity = bufferCapacity;
     recvBuffer.initialise(bufferCapacity);
 
     // for now, set RCV.WND to its max (i.e. available write-space in buffer)
+    // TODO: init to be determined by congestion control alg.
     WND = recvBuffer.availableToWrite();
 
     // zero these for now, update once we receive peer's ISS
     IRS = 0;
     NXT = 0;
-
-    std::cout << this->toString() << std::endl;
 }
 
 std::string RecvStream::toString()
@@ -153,95 +161,7 @@ std::string RecvStream::toString()
     return oss.str();
 }
 
-/**
- * Represents a raw IP packet (i.e. ip header, tcp header and tcp payload).
- */
-struct Packet
-{
-    struct IpHeader ipHeader;
-    struct TcpHeader tcpHeader;
-    std::vector<uint8_t> payload;
 
-    uint32_t combinedHeaderSize()
-    {
-        return sizeof(ipHeader) + sizeof(tcpHeader);
-    }
-
-    static Packet deserialise(std::vector<uint8_t>& buffer, uint32_t packetSize)
-    {
-        Packet packet;
-
-        size_t requiredSize = sizeof(packet.ipHeader) + sizeof(packet.tcpHeader);
-        if (buffer.size() < requiredSize) 
-            throw std::runtime_error("Packet too small to contain TCP/IP headers");
-
-        auto it = buffer.begin();
-
-        // ip header
-        std::copy(it, it + sizeof(packet.ipHeader), reinterpret_cast<uint8_t*>(&packet.ipHeader));
-        it += sizeof(packet.ipHeader);
-
-        // tcp header
-        std::copy(it, it + sizeof(packet.tcpHeader), reinterpret_cast<uint8_t*>(&packet.tcpHeader));
-        it += sizeof(packet.tcpHeader);
-
-        packet.ipHeader.networkToHostOrder();
-        packet.tcpHeader.networkToHostOrder();
-
-        // payload
-        if (packet.ipHeader.totLen != packetSize)
-            throw std::runtime_error("Packet sizes don't agree");
-
-        uint16_t payloadSize = packet.ipHeader.totLen - packet.combinedHeaderSize();
-        packet.payload.resize(payloadSize);
-        std::copy(it, it + payloadSize, packet.payload.data());
-
-        return packet;
-    }
-
-    std::vector<uint8_t> serialise(bool includeIpHeader)
-    {
-        ssize_t size = sizeof(tcpHeader) + payload.size();
-        if (includeIpHeader)
-            size += sizeof(ipHeader);
-
-        std::vector<uint8_t> buffer(size);
-        auto it = buffer.begin();
-
-        // ip header
-        if (includeIpHeader)
-        {
-            memcpy(&(*it), &ipHeader, sizeof(ipHeader));
-            it += sizeof(ipHeader);
-        }
-
-        // tcp header
-        memcpy(&(*it), &tcpHeader, sizeof(tcpHeader));
-        it += sizeof(tcpHeader);
-
-        // payload
-        memcpy(&(*it), payload.data(), payload.size());
-        return buffer;
-    }
-
-    std::string toString(bool showIpHeader = true, bool showPayload = false)
-    {
-        std::ostringstream oss;
-
-        oss << "####################################" << "\n";
-        if (showIpHeader)
-            oss << ipHeader.toString() << "\n";
-        oss << tcpHeader.toString();
-        if (showPayload)
-        {
-            std::string payloadStr(reinterpret_cast<char*>(payload.data()));
-            oss << "\nPayload" << "\n\n";
-            oss << "  " << payloadStr << "\n";
-        }
-        oss << "####################################" << "\n";
-        return oss.str();
-    }
-};
 
 /**
  * Represents the TCP thread responsible for sending/receiving packets,
@@ -363,29 +283,24 @@ private:
 
     void closedHandler()
     {
-        /**
-         * Send opening SYN packet
-         */
-        Packet packet;
+        std::cout << "CLOSED: sending initial SYN" << std::endl;
+        std::cout << tcb->sendStream.toString() << std::endl;
 
+        /**
+         * Send initial SYN packet
+         */
         TcpHeader h = {};
         h.sourcePort = tcb->sourcePort;
         h.destPort = tcb->destPort;
-        h.doff = 1;
+        h.doff = sizeof(h) / 4;
 
+        // advertise ISS and window size
         h.SYN = 1;
         h.seqNum = tcb->sendStream.ISS;
         h.window = tcb->recvStream.WND;
 
+        Packet packet;
         packet.tcpHeader = h;
-
-        std::string msg = "SYN'ing you";
-        packet.payload.resize(msg.size());
-        std::copy(
-            packet.payload.begin(), 
-            packet.payload.begin() + msg.size(), 
-            msg.data()
-        );
 
         sendPacket(packet);
 
@@ -393,94 +308,169 @@ private:
         tcb->state = SYN_SENT;
     }
 
-    void listenHandler(TcpHeader segmentHeader)
+    void listenHandler(TcpHeader segHdr)
     {
-        // received SYN, send SYN-ACK
-        if (segmentHeader.SYN)
+        std::cout << tcb->sendStream.toString() << std::endl;
+
+        // received initial SYN
+        if (segHdr.SYN)
         {
-            std::cout << "Received SYN, sending SYN-ACK" << std::endl;
+            std::cout << "LISTEN: received SYN" << std::endl;
 
-            // send SYN-ACK
+            // initialse recv stream based on peer's ISS and window size
+            tcb->recvStream.IRS = segHdr.seqNum;
+            tcb->recvStream.NXT = segHdr.seqNum + 1;
+            tcb->recvStream.WND = segHdr.window;
+
+            /**
+             * Build and send SYN-ACK
+             */
+            TcpHeader hdr = {};
+            hdr.sourcePort = tcb->sourcePort;
+            hdr.destPort = tcb->destPort;
+            hdr.doff = sizeof(hdr) / 4;
+
+            // advertise ISS and window size
+            hdr.SYN = 1;
+            hdr.seqNum = tcb->sendStream.ISS;
+            hdr.window = tcb->recvStream.WND;
+
+            // acknowledge peer's ISS
+            hdr.ACK = 1;
+            hdr.ackNum = tcb->recvStream.NXT;
+
             Packet packet;
-
-            TcpHeader h = {};
-            h.sourcePort = tcb->sourcePort;
-            h.destPort = tcb->destPort;
-            h.seqNum = 1;
-            h.ackNum = 1;
-            h.doff = 1; // TODO
-            h.SYN = 1;
-            h.ACK = 1;
-            h.window = 1024;
-            h.checksum = 69;
-
-            packet.tcpHeader = h;
-
-            std::string msg = "SYN-ACK'ing you";
-            packet.payload.resize(msg.size());
-            std::copy(
-                packet.payload.begin(), 
-                packet.payload.begin() + msg.size(), 
-                msg.data()
-            );
+            packet.tcpHeader = hdr;
 
             sendPacket(packet);
 
             // transition to SYN-RECEIVED state
             tcb->state = SYN_RECEIVED;
         }
+
+        else 
+        {
+            /**
+             * TODO: 
+             * 
+             * As we are in the LISTEN state, we reply to any
+             * non-SYN packets with a RST. 
+             */
+            std::cout << "LISTEN: non-SYN received, send RST" << std::endl;
+        }
     }
 
-    void synSentHandler(TcpHeader segmentHeader)
+    void synSentHandler(TcpHeader segHdr)
     {
-        // received SYN-ACK of previously sent SYN
-        // TODO: check ackNum lines up
-        if (segmentHeader.SYN && segmentHeader.ACK && 1)
+        // received SYN-ACK
+        if (segHdr.SYN && segHdr.ACK)
         {
-            std::cout << "Received SYN-ACK, sending ACK, connection established" << std::endl;
+            std::cout << "SYN-SENT: received SYN-ACK" << std::endl;
 
-            // send ACK
+            /**
+             * Validate ack. num. is correct.
+             * 
+             * NOTE: 
+             * 
+             * We don't send any data whilst connection is being
+             * established, so: 
+             *      SEG.ACK == SND.NXT == ISS + 1
+             * should hold.
+             */
+            if (!(segHdr.ackNum == tcb->sendStream.NXT && 
+                  segHdr.ackNum == tcb->sendStream.ISS + 1))
+            {
+                std::cout << "SYN-SENT: bad ack, send RST, -> CLOSED" << std::endl;
+                std::cout << segHdr.ackNum << " " 
+                          << tcb->sendStream.NXT << " " 
+                          << tcb->sendStream.ISS + 1 
+                          << std::endl;
+                return;
+            }
+
+            // initialise recv stream based on peer's ISS and window size
+            tcb->recvStream.IRS = segHdr.seqNum;
+            tcb->recvStream.NXT = segHdr.seqNum + 1;
+            tcb->recvStream.WND = segHdr.window;
+
+            /**
+             * Send ACK
+             */
+            TcpHeader hdr = {};
+            hdr.sourcePort = tcb->sourcePort;
+            hdr.destPort = tcb->destPort;
+            hdr.doff = sizeof(hdr) / 4;
+
+            // acknowledge peer's ISS and window size
+            hdr.ACK = 1;
+            hdr.ackNum = tcb->recvStream.NXT;
+
             Packet packet;
-
-            TcpHeader h = {};
-            h.sourcePort = tcb->sourcePort;
-            h.destPort = tcb->destPort;
-            h.seqNum = 1;
-            h.ackNum = 1;
-            h.doff = 1; // TODO
-            h.ACK = 1;
-            h.window = 4096;
-            h.checksum = 111;
-
-            packet.tcpHeader = h;
-
-            std::string msg = "ACK'ing you";
-            packet.payload.resize(msg.size());
-            std::copy(
-                packet.payload.begin(), 
-                packet.payload.begin() + msg.size(), 
-                msg.data()
-            );
+            packet.tcpHeader = hdr;
 
             sendPacket(packet);
+
+            // transition to established state
             tcb->state = ESTABLISHED;
+            std::cout << "Connection established" << std::endl;
         }
     }
 
-    void synReceivedHandler(TcpHeader segmentHeader)
+    void synReceivedHandler(TcpHeader segHdr)
     {
-        // received ACK of previously sent SYN-ACK
-        // TODO: check ackNum lines up
-        if (segmentHeader.ACK && 1)
+        // received ACK
+        if (segHdr.ACK)
         {
-            std::cout << "Received ACK, connection established" << std::endl;
+            std::cout << "SYN-RECEIVED: received ACK" << std::endl;
+
+            /**
+             * Validate ack. num. is correct. 
+             * 
+             * NOTE:
+             * 
+             * See synSentHandler (above) for explanation of validation.
+             */
+            if (!(segHdr.ackNum == tcb->sendStream.NXT && 
+                  segHdr.ackNum == tcb->sendStream.ISS + 1))
+            {
+                std::cout << "SYN-RECEIVED: bad ack, send RST, -> LISTEN" << std::endl;
+                std::cout << segHdr.ackNum << " " 
+                          << tcb->sendStream.NXT << " " 
+                          << tcb->sendStream.ISS + 1 
+                          << std::endl;
+                return;
+            }
+
             tcb->state = ESTABLISHED;
+            std::cout << "Connection established" << std::endl;
         }
     }
 
-    void establishedHandler(TcpHeader segmentHeader)
+    void establishedHandler(Packet &recvPacket)
     {
+        std::cout << "ESTABLISHED: received packet" << std::endl;
 
+        /**
+         * Process incoming packet
+         */
+
+        /**
+         * Send reply packet
+         */
+        Packet replyPacket;
+
+        TcpHeader hdr = {};
+        hdr.sourcePort = tcb->sourcePort;
+        hdr.destPort = tcb->destPort;
+        hdr.doff = sizeof(hdr) / 4;
+
+        replyPacket.tcpHeader = hdr;
+
+        std::string msg("Hello there!");
+        replyPacket.payload.resize(msg.size());
+        std::copy(msg.begin(), msg.end(), replyPacket.payload.data());
+
+        sendPacket(replyPacket);
     }
 
     bool packetValid(Packet &packet)
@@ -517,7 +507,7 @@ private:
                 if (!packetValid(packet))
                     continue;
                 
-                std::cout << packet.toString() << std::endl;
+                std::cout << packet.toString(false, true) << std::endl;
             }
             
             switch(tcb->state)
@@ -535,7 +525,7 @@ private:
                     synReceivedHandler(packet.tcpHeader);
                     break;
                 case ESTABLISHED:
-                    establishedHandler(packet.tcpHeader);
+                    establishedHandler(packet);
                     break;
                 default:
                     // shouldn't reach here
@@ -553,17 +543,15 @@ int main()
 #ifdef THREAD1
     tcb->state = CLOSED;
     tcb->sourceAddr = ip;
-    tcb->sourcePort = htons(8100);
+    tcb->sourcePort = 8100;
     tcb->destAddr = ip;
-    tcb->destPort = htons(8101);
-    std::cout << "Thread1" << std::endl;
+    tcb->destPort = 8101;
 #else // THREAD2
     tcb->state = LISTEN;
     tcb->sourceAddr = ip;
-    tcb->sourcePort = htons(8101);
+    tcb->sourcePort = 8101;
     tcb->destAddr = ip;
-    tcb->destPort = htons(8100);
-    std::cout << "Thread2" << std::endl;
+    tcb->destPort = 8100;
 #endif
 
     SegmentThread st(tcb);
