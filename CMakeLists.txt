@@ -4,16 +4,10 @@ project(racktcp)
 find_package(OpenSSL REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
-set(SRC_DIR "${CMAKE_SOURCE_DIR}")
+set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 
 file(GLOB THREAD_SOURCES
-    "${SRC_DIR}/tcp.cpp"
-    "${SRC_DIR}/buffer.cpp"
-    "${SRC_DIR}/test_utils.cpp"
-    "${SRC_DIR}/utils.cpp"
-    "${SRC_DIR}/ip.cpp"
-    "${SRC_DIR}/crypto.cpp"
-    "${SRC_DIR}/packet.cpp"
+    "${SRC_DIR}/*.cpp"
 )
 
 add_executable(thread1 ${THREAD_SOURCES})

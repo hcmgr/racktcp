@@ -31,6 +31,8 @@ TcpConnection TcpConnection::open(
     uint16_t destPort
 )
 {
+    TcpConnection tcpConnection;
+    return tcpConnection;
 }
 
 /**
@@ -74,8 +76,8 @@ void run()
     );
 }
 
-int main()
-{
-    run();
-    return 0;
-}
+// int main()
+// {
+//     run();
+//     return 0;
+// }
