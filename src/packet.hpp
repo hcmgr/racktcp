@@ -19,6 +19,8 @@ struct Packet
 
     uint32_t combinedHeaderSize();
 
+    uint32_t payloadSize();
+
     static Packet deserialise(std::vector<uint8_t>& buffer, uint32_t packetSize);
 
     std::vector<uint8_t> serialise(bool includeIpHeader);

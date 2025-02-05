@@ -36,7 +36,7 @@ namespace SystemUtils
     }
 }
 
-namespace Time
+namespace TimeUtils
 {
     /**
      * Retreive 32-bit unix epoch time.

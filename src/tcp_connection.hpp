@@ -11,7 +11,10 @@
 class TcpConnection
 {
 private:
+
+    /* Transmission control block (TCB) of the connection */
     std::shared_ptr<Tcb> tcb;
+
     // SegmentThread segmentThread; 
 
     void initialise();

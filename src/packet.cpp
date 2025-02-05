@@ -2,6 +2,7 @@
 #include <vector>
 #include <cstring>
 #include <sstream>
+#include <cassert>
 
 #include "packet.hpp"
 
@@ -14,6 +15,12 @@
 uint32_t Packet::combinedHeaderSize()
 {
     return sizeof(ipHeader) + sizeof(tcpHeader);
+}
+
+uint32_t Packet::payloadSize()
+{
+    assert(ipHeader.totLen >= combinedHeaderSize());
+    return ipHeader.totLen - combinedHeaderSize();
 }
 
 Packet Packet::deserialise(std::vector<uint8_t>& buffer, uint32_t packetSize)

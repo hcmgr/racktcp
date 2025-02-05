@@ -26,7 +26,7 @@ void CircularBuffer::initialise(uint32_t bufferCapacity)
  * Optionally write `offset` bytes into the buffer 
  * (i.e. `offset` bytes ahead of the write pointer).
  */
-bool CircularBuffer::write(std::vector<uint8_t> &inBuffer, int N, int offset)
+bool CircularBuffer::writeN(std::vector<uint8_t> &inBuffer, int N, int offset)
 {
     assert(N <= inBuffer.size());
     if (availableToWrite() < N)
@@ -48,7 +48,7 @@ bool CircularBuffer::write(std::vector<uint8_t> &inBuffer, int N, int offset)
  * Optionally read from `offset` bytes into the buffer
  * (i.e. `offset` bytes ahead of the read pointer).
  */
-bool CircularBuffer::read(std::vector<uint8_t> &outBuffer, int N, int offset)
+bool CircularBuffer::readN(std::vector<uint8_t> &outBuffer, int N, int offset)
 {
     assert(N <= outBuffer.size());
     if (availableToRead() < N)
@@ -120,12 +120,12 @@ namespace CircularBufferTests
         std::vector<uint8_t> inBuffer;
         populateRandomBuffer(inBuffer, N);
 
-        cb.write(inBuffer, N, 0);
+        cb.writeN(inBuffer, N, 0);
         ASSERT_THAT(cb.availableToRead() == N);
         ASSERT_THAT(cb.availableToWrite() == capacity - N);
 
         std::vector<uint8_t> outBuffer(N);
-        cb.read(outBuffer, N, 0);
+        cb.readN(outBuffer, N, 0);
         ASSERT_THAT(inBuffer == outBuffer);
 
         /**
@@ -134,10 +134,10 @@ namespace CircularBufferTests
         int M = 2000;
         populateRandomBuffer(inBuffer, M);
 
-        cb.write(inBuffer, M, 0);
+        cb.writeN(inBuffer, M, 0);
 
         outBuffer.resize(M);
-        cb.read(outBuffer, M, 0);
+        cb.readN(outBuffer, M, 0);
         ASSERT_THAT(inBuffer == outBuffer);
         ASSERT_THAT(cb.writePos == (N + M) % cb.capacity);
         ASSERT_THAT(cb.readPos == (N + M) % cb.capacity);
@@ -160,11 +160,11 @@ namespace CircularBufferTests
         int N = 1500;
         std::vector<uint8_t> inBuffer;
         populateRandomBuffer(inBuffer, N);
-        cb.write(inBuffer, N, 0);
+        cb.writeN(inBuffer, N, 0);
 
         int M = 500;
         std::vector<uint8_t> outBuffer(M);
-        cb.read(outBuffer, M, 0);
+        cb.readN(outBuffer, M, 0);
 
         ASSERT_THAT(cb.availableToWrite() == 1000);
 
@@ -172,7 +172,7 @@ namespace CircularBufferTests
          * Write X > availableToWrite() bytes
          */
         int X = 1100;
-        bool res = cb.write(inBuffer, X, 0);
+        bool res = cb.writeN(inBuffer, X, 0);
         ASSERT_THAT(!res);
         ASSERT_THAT(cb.writePos == 1500 && cb.readPos == 500);
     }
