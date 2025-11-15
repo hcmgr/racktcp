@@ -72,8 +72,6 @@ void TcpHeader::hostToNetworkOrder()
     urgPtr = htons(urgPtr);
 }
 
-
-
 /**
  * Represents the TCP thread responsible for sending/receiving packets,
  * and updating the state accordingly.
