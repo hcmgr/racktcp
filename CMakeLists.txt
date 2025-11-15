@@ -4,7 +4,7 @@ project(racktcp)
 find_package(OpenSSL REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
-set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+set(SRC_DIR "${CMAKE_SOURCE_DIR}/oldSrc")
 
 file(GLOB THREAD_SOURCES
     "${SRC_DIR}/*.cpp"
